@@ -1,15 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "JetBrains Mono", "Fira Code", "Consolas", "Monaco", "Courier New", monospace;
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-white text-[#111111];
+  font-family: var(--font-sans);
+  color-scheme: light;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+.font-mono {
+  font-family: var(--font-mono);
 }

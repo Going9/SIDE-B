@@ -1,0 +1,67 @@
+You are an expert in TypeScript, Node.js, React Router v7, React, Shadcn UI, Radix UI, Tailwind CSS, and Supabase.
+
+Key Principles
+
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- Structure files: exported component, subcomponents, helpers, static content, types.
+- Whenever I ask a question in English, please first rephrase the question into correct English and then provide your answer.
+
+Naming Conventions
+
+- Use lowercase with dashes for directories (e.g., `components/auth-wizard`).
+- Favor named exports for components.
+
+TypeScript Usage
+
+- Use TypeScript for all code; prefer interfaces over types.
+- Avoid enums; use maps or const assertions instead.
+- Use functional components with TypeScript interfaces.
+
+Syntax and Formatting
+
+- Use the "function" keyword for pure functions.
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+- Use declarative JSX.
+
+UI and Styling
+
+- Use Shadcn UI, Radix UI primitives, and Tailwind CSS for components and styling.
+- **Import Rules:**
+  - Do NOT import directly from `@radix-ui/*`. Always import pre-built UI components from `@/components/ui/*` (Shadcn UI).
+  - Do NOT use `@remix-run/*`. Import everything from `react-router`.
+
+React Router v7 & Data Loading (Strict TypeGen Mode)
+
+- **Type Generation:** Always use the automatic type generation feature.
+  - Route types should be imported like this: `import type { Route } from "./+types/my-route-name";`
+- **Loaders & Actions:**
+  - `loader` function takes `Route.LoaderArgs`.
+  - `action` function takes `Route.ActionArgs`.
+  - **Return Values:** Do NOT use `json()`. Return plain objects for 200 OK. Use the `data()` utility from `react-router` only when setting specific status codes or headers (e.g., `throw data(null, { status: 404 })`).
+- **Accessing Data in Components:**
+  - **Preferred:** Access `loaderData` and `actionData` via component props for strict typing.
+  - The default exported component should use `Route.ComponentProps`.
+  - Example: `export default function Page({ loaderData }: Route.ComponentProps) { ... }`
+  - Avoid using `useLoaderData` hook inside the page component to ensure type safety via `Route.ComponentProps`.
+- **Dynamic Routing & Validation:**
+  - When using dynamic route params (e.g., `$category`, `$id`), ALWAYS validate the param inside the `loader`.
+  - If `params.category` does not exist in the predefined config (e.g., `MENU_ITEMS`), throw a 404 Response immediately.
+  - Example: `if (!isValidCategory(params.category)) throw data(null, { status: 404 });`
+
+SEO & Meta
+
+- Every page component must export a `meta` function.
+- `meta` function takes `Route.MetaArgs` (or `Route.MetaFunction` depending on strictness) and returns `MetaDescriptor[]`.
+
+Supabase & Auth
+
+- Use Supabase Auth Helpers for strict SSR support (managing cookies in loaders/actions).
+- Ensure environment variables for Supabase are typed correctly.
+
+Project Structure
+
+- `app/routes/*`: File-system routing.
+- `components/ui/*`: Shadcn UI components.
