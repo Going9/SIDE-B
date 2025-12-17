@@ -6,6 +6,7 @@ import { getCategoriesBySlugs, type Category } from "../utils/categories";
 import { getLatestPosts, getTotalPostsCount } from "../utils/supabase";
 import PostCard from "../components/post-card";
 import { logError } from "../utils/error-handler";
+import { getSiteSetting } from "../utils/site-settings";
 
 interface LoaderData {
   posts: Post[];
@@ -13,11 +14,13 @@ interface LoaderData {
   currentPage: number;
   totalPages: number;
   totalPosts: number;
+  siteDescription: string;
 }
 
-export function meta({}: Route.MetaArgs) {
+export function meta({ data }: Route.MetaArgs) {
+  const siteDescription = data?.siteDescription || "개발자의 취향과 기록";
   return [
-    { title: "SIDE B | 개발자의 취향과 기록" },
+    { title: `SIDE B | ${siteDescription}` },
     {
       name: "description",
       content:
@@ -35,8 +38,11 @@ export async function loader({
     const page = parseInt(url.searchParams.get("page") || "1", 10);
     const currentPage = Math.max(1, page);
 
-    // Get total posts count
-    const totalPosts = await getTotalPostsCount();
+    // Fetch site description and posts in parallel
+    const [siteDescription, totalPosts] = await Promise.all([
+      getSiteSetting("site_description"),
+      getTotalPostsCount(),
+    ]);
 
     if (totalPosts === 0) {
       throw new Error(
@@ -69,6 +75,7 @@ export async function loader({
       currentPage,
       totalPages,
       totalPosts,
+      siteDescription: siteDescription || "개발자의 취향과 기록",
     };
   } catch (error) {
     logError(error, {
