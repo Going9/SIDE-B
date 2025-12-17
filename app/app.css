@@ -7,11 +7,14 @@
   --font-mono: "JetBrains Mono", "Fira Code", "Consolas", "Monaco", "Courier New", monospace;
 }
 
+@variant dark (&:where(.dark, .dark *));
+
 html,
 body {
-  @apply bg-white text-[#111111];
+  @apply bg-white dark:bg-gray-900 text-[#111111] dark:text-gray-100;
   font-family: var(--font-sans);
-  color-scheme: light;
+  color-scheme: light dark;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .font-mono {
