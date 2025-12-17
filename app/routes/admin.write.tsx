@@ -869,7 +869,7 @@ function AdminWriteContent() {
                   </Button>
                 </div>
                 {showPreview ? (
-                  <div className="w-full min-h-[400px] px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 prose prose-slate dark:prose-invert max-w-none">
+                  <div className="w-full min-h-[400px] px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 prose prose-slate dark:prose-invert max-w-none markdown-content">
                     <div
                       dangerouslySetInnerHTML={{
                         __html: markdownToHtml(formData.content),

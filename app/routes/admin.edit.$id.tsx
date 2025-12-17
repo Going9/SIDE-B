@@ -5,7 +5,7 @@ import type { Route } from "./+types/admin.edit.$id";
 import { supabase } from "../utils/supabase";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { MENU_ITEMS } from "../config/navigation";
+import { getActiveCategories, type Category } from "../utils/categories";
 import { getAllAuthors, type Author } from "../utils/authors";
 import type { Post } from "../types/db";
 import { markdownToHtml } from "../utils/markdown";
@@ -31,6 +31,7 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
   >([]);
   const [showPreview, setShowPreview] = useState(false);
   const [authors, setAuthors] = useState<Author[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -56,7 +57,7 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
       }
 
       setIsCheckingAuth(false);
-      await Promise.all([fetchPost(), loadAuthors()]);
+      await Promise.all([fetchPost(), loadAuthors(), loadCategories()]);
     }
 
     checkAuth();
@@ -68,6 +69,15 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
       setAuthors(allAuthors);
     } catch (err) {
       console.error("Failed to load authors:", err);
+    }
+  }
+
+  async function loadCategories() {
+    try {
+      const activeCategories = await getActiveCategories();
+      setCategories(activeCategories);
+    } catch (err) {
+      console.error("Failed to load categories:", err);
     }
   }
 
@@ -572,11 +582,15 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                   required
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100"
                 >
-                  {MENU_ITEMS.map((item) => (
-                    <option key={item.category} value={item.category}>
-                      {item.label}
-                    </option>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <option key={category.slug} value={category.slug}>
+                        {category.label}
+                      </option>
+                    ))
+                  ) : (
+                    <option value={formData.category}>{formData.category}</option>
+                  )}
                 </select>
               </div>
 
@@ -737,7 +751,7 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                   </Button>
                 </div>
                 {showPreview ? (
-                  <div className="w-full min-h-[400px] px-4 py-2 border border-gray-300 rounded-lg bg-white prose prose-slate max-w-none">
+                  <div className="w-full min-h-[400px] px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 prose prose-slate dark:prose-invert max-w-none markdown-content">
                     <div
                       dangerouslySetInnerHTML={{
                         __html: markdownToHtml(formData.content),

@@ -1,6 +1,162 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
+/* Markdown content styles */
+.markdown-content {
+  color: rgb(55 65 81);
+}
+
+.dark .markdown-content {
+  color: rgb(209 213 219);
+}
+
+.markdown-content h1 {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+  color: #111111;
+  letter-spacing: -0.025em;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.dark .markdown-content h1 {
+  color: rgb(243 244 246);
+}
+
+.markdown-content h2 {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  color: #111111;
+  letter-spacing: -0.025em;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.dark .markdown-content h2 {
+  color: rgb(243 244 246);
+}
+
+.markdown-content h3 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+  color: #111111;
+  letter-spacing: -0.025em;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.dark .markdown-content h3 {
+  color: rgb(243 244 246);
+}
+
+.markdown-content h4 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  color: #111111;
+  letter-spacing: -0.025em;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.dark .markdown-content h4 {
+  color: rgb(243 244 246);
+}
+
+.markdown-content p {
+  color: rgb(55 65 81);
+  line-height: 1.75;
+  margin-bottom: 1.5rem;
+}
+
+.dark .markdown-content p {
+  color: rgb(209 213 219);
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.markdown-content li {
+  color: rgb(55 65 81);
+  line-height: 1.75;
+}
+
+.dark .markdown-content li {
+  color: rgb(209 213 219);
+}
+
+.markdown-content code {
+  color: #2563eb;
+  background-color: rgb(243 244 246);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.dark .markdown-content code {
+  color: rgb(147 197 253);
+  background-color: rgb(31 41 55);
+}
+
+.markdown-content strong {
+  color: #111111;
+  font-weight: 600;
+}
+
+.dark .markdown-content strong {
+  color: rgb(243 244 246);
+}
+
+.markdown-content img {
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-content a {
+  color: rgb(37 99 235);
+  text-decoration: underline;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.dark .markdown-content a {
+  color: rgb(147 197 253);
+}
+
+.markdown-content pre {
+  background-color: rgb(243 244 246);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dark .markdown-content pre {
+  background-color: rgb(31 41 55);
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  color: rgb(31 41 55);
+}
+
+.dark .markdown-content pre code {
+  color: rgb(229 231 235);
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
