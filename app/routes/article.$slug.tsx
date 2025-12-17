@@ -196,7 +196,7 @@ export default function ArticlePage({ loaderData }: Route.ComponentProps) {
             {/* Bottom Section - Author Profile */}
             {article.author && (
               <Link
-                to={`/${createAuthorSlug(article.author.display_name)}`}
+                to={`/${article.author.slug || createAuthorSlug(article.author.display_name)}`}
                 className="flex items-center gap-3 pt-8 border-t border-gray-200 dark:border-gray-800 hover:opacity-70 transition-opacity"
               >
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 ring-1 ring-gray-300 dark:ring-gray-600">

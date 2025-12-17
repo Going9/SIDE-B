@@ -70,7 +70,27 @@ export async function getAuthorsByIds(ids: string[]): Promise<Record<string, Aut
 }
 
 /**
- * Get author by display name (for slug-based routing)
+ * Get author by slug (for slug-based routing)
+ */
+export async function getAuthorBySlug(slug: string): Promise<Author | null> {
+  const { data, error } = await supabase
+    .from("authors")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null; // Not found
+    logError(error, { component: "authors", action: "getAuthorBySlug", metadata: { slug } });
+    return null;
+  }
+
+  return (data as Author) || null;
+}
+
+/**
+ * Get author by display name (for backward compatibility)
+ * @deprecated Use getAuthorBySlug instead
  */
 export async function getAuthorByDisplayName(displayName: string): Promise<Author | null> {
   const { data, error } = await supabase

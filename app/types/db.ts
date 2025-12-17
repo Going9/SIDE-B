@@ -3,9 +3,11 @@
  */
 export interface Author {
   id: string;
+  user_id: string; // User who created this author
   display_name: string;
   bio: string | null;
   profile_image_url: string | null;
+  slug: string;
   created_at: string;
   updated_at: string;
 }

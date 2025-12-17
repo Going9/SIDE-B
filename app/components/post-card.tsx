@@ -73,7 +73,7 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
                   {/* Right: Author Profile */}
                   {post.author && (
                     <Link
-                      to={`/${createAuthorSlug(post.author.display_name)}`}
+                      to={`/${post.author.slug || createAuthorSlug(post.author.display_name)}`}
                       onClick={(e) => e.stopPropagation()}
                       className="flex flex-col items-center gap-2 flex-shrink-0 hover:opacity-70 transition-opacity"
                     >
@@ -186,7 +186,7 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
             {/* Right: Author Profile */}
             {post.author && (
               <Link
-                to={`/${createAuthorSlug(post.author.display_name)}`}
+                to={`/${post.author.slug || createAuthorSlug(post.author.display_name)}`}
                 onClick={(e) => e.stopPropagation()}
                 className="flex flex-col items-center gap-1.5 flex-shrink-0 hover:opacity-70 transition-opacity"
               >

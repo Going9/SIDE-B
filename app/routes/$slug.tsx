@@ -4,8 +4,7 @@ import { getPageBySlug } from "../utils/pages";
 import { getCategoryBySlug, isValidCategory } from "../utils/categories";
 import { getPostsByAuthor } from "../utils/supabase";
 import { getPostsByCategory } from "../utils/supabase";
-import { getAuthorByDisplayName } from "../utils/authors";
-import { decodeAuthorSlug } from "../utils/slug";
+import { getAuthorBySlug, getAuthorByDisplayName } from "../utils/authors";
 import { markdownToHtml } from "../utils/markdown";
 import type { Post } from "../types/db";
 import {
@@ -21,6 +20,7 @@ import { handleImageError } from "../utils/image";
 import PostCard from "../components/post-card";
 import { getCategoriesBySlugs } from "../utils/categories";
 import type { Category } from "../utils/categories";
+import { createAuthorSlug } from "../utils/slug";
 
 interface LoaderData {
   type: "page" | "category" | "author";
@@ -93,9 +93,14 @@ export async function loader({ params }: Route.LoaderArgs): Promise<LoaderData> 
     };
   }
 
-  // Second, check if this is an author (by display name)
-  const decodedName = decodeAuthorSlug(slug);
-  const author = await getAuthorByDisplayName(decodedName);
+  // Second, check if this is an author (by slug)
+  // Try slug first, then fallback to display_name for backward compatibility
+  let author = await getAuthorBySlug(slug);
+  if (!author) {
+    // Fallback: try decoding slug as display_name (for existing data without slug)
+    const decodedName = decodeURIComponent(slug);
+    author = await getAuthorByDisplayName(decodedName);
+  }
   if (author) {
     // Fetch posts by this author
     const posts = await getPostsByAuthor(author.id);
@@ -340,7 +345,7 @@ export default function SlugPage({ loaderData }: Route.ComponentProps) {
                           {/* Right: Author Profile */}
                           {post.author && (
                             <Link
-                              to={`/${encodeURIComponent(post.author.display_name)}`}
+                              to={`/${post.author.slug || createAuthorSlug(post.author.display_name)}`}
                               onClick={(e) => e.stopPropagation()}
                               className="flex flex-col items-center gap-1.5 flex-shrink-0 hover:opacity-70 transition-opacity"
                             >

@@ -10,6 +10,7 @@ import { ToastProvider, useToast } from "../components/ui/toast";
 import { getAllAuthors, type Author } from "../utils/authors";
 import { logError, formatErrorMessage } from "../utils/error-handler";
 import AuthorProfile from "../components/author-profile";
+import { createAuthorSlug } from "../utils/slug";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "작성자 관리 | Admin | SIDE B" }];
@@ -150,6 +151,8 @@ function AdminAuthorsContent() {
         setIsUploading(false);
       }
 
+      const slug = createAuthorSlug(formData.display_name);
+      
       if (editingId) {
         // Update existing author
         const { error: updateError } = await supabase
@@ -158,6 +161,7 @@ function AdminAuthorsContent() {
             display_name: formData.display_name,
             bio: formData.bio || null,
             profile_image_url: profileImageUrl,
+            slug: slug,
           })
           .eq("id", editingId);
 
@@ -170,20 +174,36 @@ function AdminAuthorsContent() {
         }
         showToast("작성자 정보가 수정되었습니다.", "success");
       } else {
-        // Create new author (for current user)
-        const { error: insertError } = await supabase.from("authors").insert({
-          id: session.user.id,
+        // Create new author (id will be auto-generated, user_id tracks creator)
+        const insertData: Record<string, unknown> = {
+          user_id: session.user.id,
           display_name: formData.display_name,
           bio: formData.bio || null,
           profile_image_url: profileImageUrl,
-        });
+          slug: slug,
+        };
+        
+        const { error: insertError } = await supabase.from("authors").insert(insertData);
 
         if (insertError) {
-          const errorMsg = formatErrorMessage(insertError);
-          setError(errorMsg);
-          showToast(errorMsg, "error");
-          setIsSubmitting(false);
-          return;
+          // If error is about slug column not existing, retry without it
+          if (insertError.message.includes("slug") || insertError.code === "42703") {
+            delete insertData.slug;
+            const { error: retryError } = await supabase.from("authors").insert(insertData);
+            if (retryError) {
+              const errorMsg = formatErrorMessage(retryError);
+              setError(errorMsg);
+              showToast(errorMsg, "error");
+              setIsSubmitting(false);
+              return;
+            }
+          } else {
+            const errorMsg = formatErrorMessage(insertError);
+            setError(errorMsg);
+            showToast(errorMsg, "error");
+            setIsSubmitting(false);
+            return;
+          }
         }
         showToast("작성자 프로필이 생성되었습니다.", "success");
       }
