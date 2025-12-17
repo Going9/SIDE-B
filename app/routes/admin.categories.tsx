@@ -5,6 +5,9 @@ import type { Route } from "./+types/admin.categories";
 import { supabase } from "../utils/supabase";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { LoadingScreen } from "../components/ui/loading-spinner";
+import { ToastProvider, useToast } from "../components/ui/toast";
+import { logError, formatErrorMessage } from "../utils/error-handler";
 
 interface Category {
   id: string;
@@ -19,8 +22,9 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "카테고리 관리 | Admin | SIDE B" }];
 }
 
-export default function AdminCategories() {
+function AdminCategoriesContent() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,13 +64,19 @@ export default function AdminCategories() {
         .order("display_order", { ascending: true });
 
       if (fetchError) {
-        setError(`카테고리 불러오기 실패: ${fetchError.message}`);
+        const errorMsg = formatErrorMessage(fetchError);
+        setError(errorMsg);
+        showToast(errorMsg, "error");
+        logError(fetchError, { component: "AdminCategories", action: "fetchCategories" });
         return;
       }
 
       setCategories((data || []) as Category[]);
     } catch (err) {
-      setError("예상치 못한 오류가 발생했습니다.");
+      const errorMsg = formatErrorMessage(err);
+      setError(errorMsg);
+      showToast(errorMsg, "error");
+      logError(err, { component: "AdminCategories", action: "fetchCategories" });
     } finally {
       setIsLoading(false);
     }
@@ -101,10 +111,13 @@ export default function AdminCategories() {
           .eq("id", editingId);
 
         if (updateError) {
-          setError(updateError.message);
+          const errorMsg = formatErrorMessage(updateError);
+          setError(errorMsg);
+          showToast(errorMsg, "error");
           setIsSubmitting(false);
           return;
         }
+        showToast("카테고리가 수정되었습니다.", "success");
       } else {
         // Create new category
         const { error: insertError } = await supabase.from("categories").insert({
@@ -116,10 +129,13 @@ export default function AdminCategories() {
         });
 
         if (insertError) {
-          setError(insertError.message);
+          const errorMsg = formatErrorMessage(insertError);
+          setError(errorMsg);
+          showToast(errorMsg, "error");
           setIsSubmitting(false);
           return;
         }
+        showToast("카테고리가 추가되었습니다.", "success");
       }
 
       // Reset form and refresh
@@ -128,7 +144,10 @@ export default function AdminCategories() {
       await fetchCategories();
       setIsSubmitting(false);
     } catch (err) {
-      setError("예상치 못한 오류가 발생했습니다.");
+      const errorMsg = formatErrorMessage(err);
+      setError(errorMsg);
+      showToast(errorMsg, "error");
+      logError(err, { component: "AdminCategories", action: "submitCategory" });
       setIsSubmitting(false);
     }
   }
@@ -155,10 +174,14 @@ export default function AdminCategories() {
       .eq("id", id);
 
     if (error) {
-      setError(error.message);
+      const errorMsg = formatErrorMessage(error);
+      setError(errorMsg);
+      showToast(errorMsg, "error");
+      logError(error, { component: "AdminCategories", action: "toggleActive" });
       return;
     }
 
+    showToast(`카테고리가 ${!currentStatus ? "활성화" : "비활성화"}되었습니다.`, "success");
     await fetchCategories();
   }
 
@@ -170,26 +193,26 @@ export default function AdminCategories() {
     const { error } = await supabase.from("categories").delete().eq("id", id);
 
     if (error) {
-      setError(error.message);
+      const errorMsg = formatErrorMessage(error);
+      setError(errorMsg);
+      showToast(errorMsg, "error");
+      logError(error, { component: "AdminCategories", action: "deleteCategory" });
       return;
     }
 
+    showToast("카테고리가 삭제되었습니다.", "success");
     await fetchCategories();
   }
 
   if (isCheckingAuth || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="로딩 중..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors">
       <div className="container mx-auto max-w-6xl">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#111111]">카테고리 관리</h1>
+          <h1 className="text-4xl font-bold text-[#111111] dark:text-gray-100">카테고리 관리</h1>
           <div className="flex gap-4">
             <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
               대시보드로
@@ -278,7 +301,7 @@ export default function AdminCategories() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded text-sm">
                     {error}
                   </div>
                 )}
@@ -365,11 +388,7 @@ export default function AdminCategories() {
                     </Button>
                   )}
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting
-                      ? "저장 중..."
-                      : editingId
-                        ? "수정하기"
-                        : "카테고리 추가"}
+                    {isSubmitting ? "저장 중..." : editingId ? "수정하기" : "카테고리 추가"}
                   </Button>
                 </div>
               </form>
@@ -378,6 +397,14 @@ export default function AdminCategories() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminCategories() {
+  return (
+    <ToastProvider>
+      <AdminCategoriesContent />
+    </ToastProvider>
   );
 }
 
