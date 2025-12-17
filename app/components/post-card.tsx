@@ -5,6 +5,7 @@ import type { Category } from "../utils/categories";
 import { formatDateKST } from "../utils/date";
 import { handleImageError } from "../utils/image";
 import AuthorProfile from "./author-profile";
+import { createAuthorSlug } from "../utils/slug";
 
 interface PostCardProps {
   post: Post;
@@ -71,7 +72,11 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
 
                   {/* Right: Author Profile */}
                   {post.author && (
-                    <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                    <Link
+                      to={`/${createAuthorSlug(post.author.display_name)}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex flex-col items-center gap-2 flex-shrink-0 hover:opacity-70 transition-opacity"
+                    >
                       <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 flex-shrink-0 ring-2 ring-white/20">
                         {post.author.profile_image_url ? (
                           <img
@@ -91,7 +96,7 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
                       <span className="text-xs text-white/90 font-medium text-center max-w-[80px] truncate">
                         {post.author.display_name}
                       </span>
-                    </div>
+                    </Link>
                   )}
                 </div>
               </div>
@@ -180,7 +185,11 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
 
             {/* Right: Author Profile */}
             {post.author && (
-              <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              <Link
+                to={`/${createAuthorSlug(post.author.display_name)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 hover:opacity-70 transition-opacity"
+              >
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 ring-1 ring-gray-300 dark:ring-gray-600">
                   {post.author.profile_image_url ? (
                     <img
@@ -200,7 +209,7 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
                 <span className="text-xs text-[#666] dark:text-[#999] font-medium text-center max-w-[60px] truncate">
                   {post.author.display_name}
                 </span>
-              </div>
+              </Link>
             )}
           </div>
         </div>

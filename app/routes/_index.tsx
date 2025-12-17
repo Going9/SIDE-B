@@ -142,7 +142,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="w-full bg-white dark:bg-gray-900 transition-colors">
+    <div className="w-full bg-[#faf9f6] dark:bg-gray-950 transition-colors">
       {/* Posts Sections */}
       <section className="w-full py-16 md:py-24 px-4 md:px-6">
         <div className="container mx-auto max-w-7xl">

@@ -317,7 +317,7 @@ function AdminCategoriesContent() {
                     value={formData.slug}
                     onChange={handleInputChange}
                     required
-                    pattern="[a-z0-9-]+"
+                    pattern="[a-z0-9\-]+"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none"
                     placeholder="예: new-category"
                   />

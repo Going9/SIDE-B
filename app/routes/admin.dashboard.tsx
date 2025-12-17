@@ -194,6 +194,15 @@ function AdminDashboardContent() {
             <Link to="/admin/categories">
               <Button variant="outline">카테고리 관리</Button>
             </Link>
+            <Link to="/admin/authors">
+              <Button variant="outline">작성자 관리</Button>
+            </Link>
+            <Link to="/admin/settings">
+              <Button variant="outline">사이트 설정</Button>
+            </Link>
+            <Link to="/admin/pages">
+              <Button variant="outline">페이지 관리</Button>
+            </Link>
             <Link to="/admin/write">
               <Button>Write New Post</Button>
             </Link>

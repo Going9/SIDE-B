@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Post } from "../types/db";
+import type { Post, Author } from "../types/db";
 import { logError } from "./error-handler";
+import { getAuthorsByIds } from "./authors";
 
 // 1. 환경 변수에서 키 가져오기
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -34,7 +35,22 @@ export async function getLatestPosts(
     throw new Error(`Failed to fetch posts: ${error.message}`);
   }
 
-  return (data || []) as Post[];
+  const posts = (data || []) as Post[];
+
+  // Load authors separately if author_id exists
+  const authorIds = posts
+    .map((post) => post.author_id)
+    .filter((id): id is string => id !== null && id !== undefined);
+
+  if (authorIds.length > 0) {
+    const authors = await getAuthorsByIds(authorIds);
+    return posts.map((post) => ({
+      ...post,
+      author: post.author_id ? authors[post.author_id] || null : null,
+    }));
+  }
+
+  return posts;
 }
 
 /**
@@ -54,7 +70,7 @@ export async function getTotalPostsCount(): Promise<number> {
 }
 
 export async function getPostsByCategory(
-  category: Post["category"]
+  category: string
 ): Promise<Post[]> {
   const { data, error } = await supabase
     .from("posts")
@@ -71,7 +87,22 @@ export async function getPostsByCategory(
     throw new Error(`Failed to fetch posts by category: ${error.message}`);
   }
 
-  return (data || []) as Post[];
+  const posts = (data || []) as Post[];
+
+  // Load authors separately if author_id exists
+  const authorIds = posts
+    .map((post) => post.author_id)
+    .filter((id): id is string => id !== null && id !== undefined);
+
+  if (authorIds.length > 0) {
+    const authors = await getAuthorsByIds(authorIds);
+    return posts.map((post) => ({
+      ...post,
+      author: post.author_id ? authors[post.author_id] || null : null,
+    }));
+  }
+
+  return posts;
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
@@ -91,5 +122,53 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     throw new Error(`Failed to fetch post: ${error.message}`);
   }
 
-  return data as Post;
+  const post = data as Post;
+
+  // Load author separately if author_id exists
+  if (post.author_id) {
+    const authors = await getAuthorsByIds([post.author_id]);
+    return {
+      ...post,
+      author: authors[post.author_id] || null,
+    };
+  }
+
+  return post;
+}
+
+/**
+ * Get posts by author ID
+ */
+export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("author_id", authorId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logError(error, {
+      component: "supabase",
+      action: "getPostsByAuthor",
+      metadata: { authorId },
+    });
+    throw new Error(`Failed to fetch posts by author: ${error.message}`);
+  }
+
+  const posts = (data || []) as Post[];
+
+  // Load authors separately if author_id exists
+  const authorIds = posts
+    .map((post) => post.author_id)
+    .filter((id): id is string => id !== null && id !== undefined);
+
+  if (authorIds.length > 0) {
+    const authors = await getAuthorsByIds(authorIds);
+    return posts.map((post) => ({
+      ...post,
+      author: post.author_id ? authors[post.author_id] || null : null,
+    }));
+  }
+
+  return posts;
 }

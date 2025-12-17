@@ -4,11 +4,20 @@ import { useNavigate } from "react-router";
 import type { Route } from "./+types/admin.write";
 import { supabase } from "../utils/supabase";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { LoadingScreen, LoadingSpinner } from "../components/ui/loading-spinner";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import {
+  LoadingScreen,
+  LoadingSpinner,
+} from "../components/ui/loading-spinner";
 import { ToastProvider, useToast } from "../components/ui/toast";
 import { getActiveCategories, type Category } from "../utils/categories";
-import type { Post } from "../types/db";
+import { getAllAuthors } from "../utils/authors";
+import type { Post, Author } from "../types/db";
 import { markdownToHtml } from "../utils/markdown";
 import { logError, formatErrorMessage } from "../utils/error-handler";
 
@@ -22,7 +31,8 @@ function AdminWriteContent() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isUploadingContentImages, setIsUploadingContentImages] = useState(false);
+  const [isUploadingContentImages, setIsUploadingContentImages] =
+    useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -32,15 +42,18 @@ function AdminWriteContent() {
   >([]);
   const [showPreview, setShowPreview] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
-    category: "" as Post["category"],
+    category: "",
+    author_id: "",
     subtitle: "",
     description: "",
     content: "",
     cover_image: "",
+    background_color: "",
   });
 
   useEffect(() => {
@@ -55,17 +68,41 @@ function AdminWriteContent() {
       }
 
       setIsCheckingAuth(false);
-      
-      // Load categories
+
+      // Load categories and authors
       try {
-        const activeCategories = await getActiveCategories();
+        const [activeCategories, allAuthors] = await Promise.all([
+          getActiveCategories(),
+          getAllAuthors(),
+        ]);
+
         setCategories(activeCategories);
+        setAuthors(allAuthors);
+
         if (activeCategories.length > 0) {
-          setFormData((prev) => ({ ...prev, category: activeCategories[0].slug as Post["category"] }));
+          setFormData((prev) => ({
+            ...prev,
+            category: activeCategories[0].slug,
+          }));
+        }
+
+        // Set current user as default author if available
+        if (allAuthors.length > 0 && session.user) {
+          const currentUserAuthor = allAuthors.find(
+            (a) => a.id === session.user.id
+          );
+          if (currentUserAuthor) {
+            setFormData((prev) => ({
+              ...prev,
+              author_id: currentUserAuthor.id,
+            }));
+          } else if (allAuthors.length > 0) {
+            setFormData((prev) => ({ ...prev, author_id: allAuthors[0].id }));
+          }
         }
       } catch (err) {
         logError(err, { component: "AdminWrite", action: "loadCategories" });
-        showToast("카테고리를 불러오는데 실패했습니다.", "error");
+        showToast("데이터를 불러오는데 실패했습니다.", "error");
       } finally {
         setIsLoadingCategories(false);
       }
@@ -84,10 +121,12 @@ function AdminWriteContent() {
   }, [imagePreview]);
 
   function handleInputChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) {
     const { name, value } = e.target;
-    
+
     // Auto-generate slug from title
     if (name === "title" && !formData.slug) {
       const slug = value
@@ -111,6 +150,98 @@ function AdminWriteContent() {
       setSelectedFile(null);
       setImagePreview(null);
     }
+  }
+
+  /**
+   * Extract dominant color from an image
+   * Uses Canvas API to sample pixels and find the most common color
+   */
+  async function extractDominantColor(imageUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Canvas context not available"));
+            return;
+          }
+
+          // Resize for performance (sample smaller image)
+          const maxSize = 100;
+          const scale = Math.min(maxSize / img.width, maxSize / img.height);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Sample pixels (every 5th pixel for performance)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const pixels = imageData.data;
+          const colorCounts: Record<string, number> = {};
+          const sampleStep = 5;
+
+          for (let i = 0; i < pixels.length; i += sampleStep * 4) {
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            const a = pixels[i + 3];
+
+            // Skip transparent pixels
+            if (a < 128) continue;
+
+            // Quantize colors to reduce color space (group similar colors)
+            const qr = Math.round(r / 10) * 10;
+            const qg = Math.round(g / 10) * 10;
+            const qb = Math.round(b / 10) * 10;
+            const colorKey = `${qr},${qg},${qb}`;
+
+            colorCounts[colorKey] = (colorCounts[colorKey] || 0) + 1;
+          }
+
+          // Find most common color
+          let maxCount = 0;
+          let dominantColor = "255,255,255"; // Default to white
+
+          for (const [color, count] of Object.entries(colorCounts)) {
+            if (count > maxCount) {
+              maxCount = count;
+              dominantColor = color;
+            }
+          }
+
+          // Convert to hex
+          const [r, g, b] = dominantColor.split(",").map(Number);
+          const hex = `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+
+          // Lighten the color for better readability (blend with white)
+          const lightenFactor = 0.85; // 85% original + 15% white
+          const lightR = Math.round(
+            r * lightenFactor + 255 * (1 - lightenFactor)
+          );
+          const lightG = Math.round(
+            g * lightenFactor + 255 * (1 - lightenFactor)
+          );
+          const lightB = Math.round(
+            b * lightenFactor + 255 * (1 - lightenFactor)
+          );
+          const lightHex = `#${[lightR, lightG, lightB].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+
+          resolve(lightHex);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error("Failed to load image"));
+      };
+
+      img.src = imageUrl;
+    });
   }
 
   async function uploadImage(file: File): Promise<string> {
@@ -194,7 +325,9 @@ function AdminWriteContent() {
     };
   }
 
-  async function handleContentImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleContentImagesChange(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -206,7 +339,11 @@ function AdminWriteContent() {
       const results = await Promise.all(uploadPromises);
       setUploadedContentImages((prev) => [...prev, ...results]);
     } catch (uploadErr) {
-      setError(uploadErr instanceof Error ? uploadErr.message : "Failed to upload images");
+      setError(
+        uploadErr instanceof Error
+          ? uploadErr.message
+          : "Failed to upload images"
+      );
     } finally {
       setIsUploadingContentImages(false);
       // Reset file input
@@ -227,12 +364,18 @@ function AdminWriteContent() {
       const end = textarea.selectionEnd;
       const currentContent = formData.content;
       const newContent =
-        currentContent.substring(0, start) + markdown + "\n" + currentContent.substring(end);
+        currentContent.substring(0, start) +
+        markdown +
+        "\n" +
+        currentContent.substring(end);
       setFormData((prev) => ({ ...prev, content: newContent }));
       // Set cursor position after inserted markdown
       setTimeout(() => {
         textarea.focus();
-        textarea.setSelectionRange(start + markdown.length + 1, start + markdown.length + 1);
+        textarea.setSelectionRange(
+          start + markdown.length + 1,
+          start + markdown.length + 1
+        );
       }, 0);
     }
   }
@@ -341,7 +484,11 @@ function AdminWriteContent() {
         try {
           coverImageUrl = await uploadImage(selectedFile);
         } catch (uploadErr) {
-          setError(uploadErr instanceof Error ? uploadErr.message : "Failed to upload image");
+          setError(
+            uploadErr instanceof Error
+              ? uploadErr.message
+              : "Failed to upload image"
+          );
           setIsUploading(false);
           setIsSubmitting(false);
           return;
@@ -350,22 +497,64 @@ function AdminWriteContent() {
       }
 
       // Insert post
-      const { error: insertError } = await supabase.from("posts").insert({
+      const insertData: Record<string, unknown> = {
         title: formData.title,
         slug: formData.slug,
         category: formData.category,
+        author_id: formData.author_id || null,
         subtitle: formData.subtitle,
         description: formData.description || formData.subtitle,
         content: formData.content,
         cover_image: coverImageUrl,
-      });
+      };
+
+      // Only include background_color if it's set (field may not exist in DB yet)
+      // Try to insert with background_color, but handle gracefully if field doesn't exist
+      if (
+        formData.background_color &&
+        formData.background_color.trim() !== ""
+      ) {
+        insertData.background_color = formData.background_color;
+      }
+
+      const { error: insertError, data } = await supabase
+        .from("posts")
+        .insert(insertData);
 
       if (insertError) {
-        const errorMsg = formatErrorMessage(insertError);
-        setError(errorMsg);
-        showToast(errorMsg, "error");
-        setIsSubmitting(false);
-        return;
+        console.error("Supabase insert error:", insertError);
+        console.error("Insert data:", insertData);
+
+        // If error is about unknown column, try again without background_color
+        if (
+          insertError.message &&
+          (insertError.message.includes("column") ||
+            insertError.code === "42703") &&
+          insertData.background_color
+        ) {
+          console.warn(
+            "background_color column not found, retrying without it"
+          );
+          const retryData = { ...insertData };
+          delete retryData.background_color;
+          const { error: retryError } = await supabase
+            .from("posts")
+            .insert(retryData);
+          if (retryError) {
+            console.error("Retry insert error:", retryError);
+            const errorMsg = formatErrorMessage(retryError);
+            setError(errorMsg);
+            showToast(errorMsg, "error");
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          const errorMsg = formatErrorMessage(insertError);
+          setError(errorMsg);
+          showToast(errorMsg, "error");
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       // Sync image status: activate used images, deactivate unused images
@@ -392,8 +581,13 @@ function AdminWriteContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors">
       <div className="container mx-auto max-w-4xl">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#111111] dark:text-gray-100">Write New Post</h1>
-          <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
+          <h1 className="text-4xl font-bold text-[#111111] dark:text-gray-100">
+            Write New Post
+          </h1>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/admin/dashboard")}
+          >
             Back to Dashboard
           </Button>
         </div>
@@ -411,7 +605,10 @@ function AdminWriteContent() {
               )}
 
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="title"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Title *
                 </label>
                 <input
@@ -427,7 +624,10 @@ function AdminWriteContent() {
               </div>
 
               <div>
-                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="slug"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Slug *
                 </label>
                 <input
@@ -437,15 +637,20 @@ function AdminWriteContent() {
                   value={formData.slug}
                   onChange={handleInputChange}
                   required
-                  pattern="[a-z0-9-]+"
+                  pattern="[a-z0-9\-]+"
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100"
                   placeholder="post-slug-url"
                 />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">제목에서 자동 생성되거나 수동으로 입력하세요</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  제목에서 자동 생성되거나 수동으로 입력하세요
+                </p>
               </div>
 
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="category"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Category *
                 </label>
                 <select
@@ -469,7 +674,37 @@ function AdminWriteContent() {
               </div>
 
               <div>
-                <label htmlFor="subtitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="author_id"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Author
+                </label>
+                <select
+                  id="author_id"
+                  name="author_id"
+                  value={formData.author_id}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100"
+                >
+                  <option value="">작성자 선택 (선택사항)</option>
+                  {authors.map((author) => (
+                    <option key={author.id} value={author.id}>
+                      {author.display_name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  게시글 작성자를 선택하세요. 선택하지 않으면 작성자 없음으로
+                  표시됩니다.
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="subtitle"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Subtitle *
                 </label>
                 <input
@@ -485,7 +720,10 @@ function AdminWriteContent() {
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Description
                 </label>
                 <input
@@ -503,7 +741,10 @@ function AdminWriteContent() {
               </div>
 
               <div>
-                <label htmlFor="cover_image" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="cover_image"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Cover Image
                 </label>
                 <input
@@ -516,7 +757,9 @@ function AdminWriteContent() {
                 />
                 {imagePreview && (
                   <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Preview:
+                    </p>
                     <div className="relative inline-block">
                       <img
                         src={imagePreview}
@@ -536,7 +779,84 @@ function AdminWriteContent() {
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="background_color"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Background Color (상세 페이지 우측 배경)
+                  </label>
+                  {imagePreview && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (!imagePreview) return;
+                        try {
+                          const color =
+                            await extractDominantColor(imagePreview);
+                          setFormData((prev) => ({
+                            ...prev,
+                            background_color: color,
+                          }));
+                          showToast(
+                            "색상이 자동으로 추출되었습니다!",
+                            "success"
+                          );
+                        } catch (err) {
+                          showToast("색상 추출에 실패했습니다.", "error");
+                        }
+                      }}
+                    >
+                      자동 추출
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="background_color"
+                    name="background_color"
+                    type="color"
+                    value={formData.background_color || "#faf9f6"}
+                    onChange={handleInputChange}
+                    className="h-10 w-20 border border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer bg-white dark:bg-gray-800"
+                  />
+                  <input
+                    type="text"
+                    value={formData.background_color || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        background_color: e.target.value,
+                      }))
+                    }
+                    placeholder="#faf9f6"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100 font-mono text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, background_color: "" }))
+                    }
+                  >
+                    초기화
+                  </Button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  상세 페이지 우측 배경색을 설정합니다. 비워두면 기본
+                  색상(#faf9f6)이 사용됩니다. 자동 추출 버튼으로 썸네일
+                  이미지에서 주요 색상을 추출할 수 있습니다.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label
+                    htmlFor="content"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Content * (Markdown 지원)
                   </label>
                   <Button
@@ -571,7 +891,9 @@ function AdminWriteContent() {
               </div>
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Insert Images</h3>
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                  Insert Images
+                </h3>
                 <div className="space-y-4">
                   <div>
                     <label
@@ -635,7 +957,10 @@ function AdminWriteContent() {
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 truncate mb-2" title={image.name}>
+                            <p
+                              className="text-xs text-gray-600 dark:text-gray-400 truncate mb-2"
+                              title={image.name}
+                            >
                               {image.name}
                             </p>
                             <div className="flex flex-col gap-1">
@@ -643,7 +968,9 @@ function AdminWriteContent() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => copyMarkdownToClipboard(image.url, image.name)}
+                                onClick={() =>
+                                  copyMarkdownToClipboard(image.url, image.name)
+                                }
                                 className="text-xs py-1 h-auto"
                               >
                                 Copy Markdown
@@ -652,7 +979,9 @@ function AdminWriteContent() {
                                 type="button"
                                 variant="default"
                                 size="sm"
-                                onClick={() => insertMarkdownToEditor(image.url, image.name)}
+                                onClick={() =>
+                                  insertMarkdownToEditor(image.url, image.name)
+                                }
                                 className="text-xs py-1 h-auto"
                               >
                                 Insert to Editor
@@ -675,7 +1004,10 @@ function AdminWriteContent() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting || isUploading || !formData.category}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isUploading || !formData.category}
+                >
                   {isUploading || isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <LoadingSpinner size="sm" />
@@ -701,4 +1033,3 @@ export default function AdminWrite() {
     </ToastProvider>
   );
 }
-

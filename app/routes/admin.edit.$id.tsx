@@ -6,6 +6,7 @@ import { supabase } from "../utils/supabase";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { MENU_ITEMS } from "../config/navigation";
+import { getAllAuthors, type Author } from "../utils/authors";
 import type { Post } from "../types/db";
 import { markdownToHtml } from "../utils/markdown";
 
@@ -29,15 +30,18 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
     Array<{ id: string; url: string; name: string; storagePath: string }>
   >([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [authors, setAuthors] = useState<Author[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
-    category: "mobility" as Post["category"],
+    category: "mobility",
+    author_id: "",
     subtitle: "",
     description: "",
     content: "",
     cover_image: "",
+    background_color: "",
   });
 
   useEffect(() => {
@@ -52,11 +56,20 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
       }
 
       setIsCheckingAuth(false);
-      await fetchPost();
+      await Promise.all([fetchPost(), loadAuthors()]);
     }
 
     checkAuth();
   }, [navigate]);
+
+  async function loadAuthors() {
+    try {
+      const allAuthors = await getAllAuthors();
+      setAuthors(allAuthors);
+    } catch (err) {
+      console.error("Failed to load authors:", err);
+    }
+  }
 
   // Cleanup object URL to prevent memory leaks
   useEffect(() => {
@@ -86,11 +99,13 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
         setFormData({
           title: data.title || "",
           slug: data.slug || "",
-          category: (data.category as Post["category"]) || "mobility",
+          category: data.category || "mobility",
+          author_id: data.author_id || "",
           subtitle: data.subtitle || "",
           description: data.description || "",
           content: data.content || "",
           cover_image: coverImage,
+          background_color: data.background_color || "",
         });
         setOriginalCoverImage(coverImage || null);
         if (coverImage) {
@@ -123,6 +138,92 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
       // Reset to original image if available
       setImagePreview(originalCoverImage);
     }
+  }
+
+  /**
+   * Extract dominant color from an image
+   * Uses Canvas API to sample pixels and find the most common color
+   */
+  async function extractDominantColor(imageUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Canvas context not available"));
+            return;
+          }
+
+          // Resize for performance (sample smaller image)
+          const maxSize = 100;
+          const scale = Math.min(maxSize / img.width, maxSize / img.height);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Sample pixels (every 5th pixel for performance)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const pixels = imageData.data;
+          const colorCounts: Record<string, number> = {};
+          const sampleStep = 5;
+
+          for (let i = 0; i < pixels.length; i += sampleStep * 4) {
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            const a = pixels[i + 3];
+
+            // Skip transparent pixels
+            if (a < 128) continue;
+
+            // Quantize colors to reduce color space (group similar colors)
+            const qr = Math.round(r / 10) * 10;
+            const qg = Math.round(g / 10) * 10;
+            const qb = Math.round(b / 10) * 10;
+            const colorKey = `${qr},${qg},${qb}`;
+
+            colorCounts[colorKey] = (colorCounts[colorKey] || 0) + 1;
+          }
+
+          // Find most common color
+          let maxCount = 0;
+          let dominantColor = "255,255,255"; // Default to white
+
+          for (const [color, count] of Object.entries(colorCounts)) {
+            if (count > maxCount) {
+              maxCount = count;
+              dominantColor = color;
+            }
+          }
+
+          // Convert to hex
+          const [r, g, b] = dominantColor.split(",").map(Number);
+          const hex = `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+
+          // Lighten the color for better readability (blend with white)
+          const lightenFactor = 0.85; // 85% original + 15% white
+          const lightR = Math.round(r * lightenFactor + 255 * (1 - lightenFactor));
+          const lightG = Math.round(g * lightenFactor + 255 * (1 - lightenFactor));
+          const lightB = Math.round(b * lightenFactor + 255 * (1 - lightenFactor));
+          const lightHex = `#${[lightR, lightG, lightB].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+
+          resolve(lightHex);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error("Failed to load image"));
+      };
+
+      img.src = imageUrl;
+    });
   }
 
   async function uploadImage(file: File): Promise<string> {
@@ -341,24 +442,49 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
         setIsUploading(false);
       }
 
+      const updateData: Record<string, unknown> = {
+        title: formData.title,
+        slug: formData.slug,
+        category: formData.category,
+        author_id: formData.author_id || null,
+        subtitle: formData.subtitle,
+        description: formData.description || formData.subtitle,
+        content: formData.content,
+        cover_image: coverImageUrl,
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Only include background_color if it's set (field may not exist in DB yet)
+      // Try to update with background_color, but handle gracefully if field doesn't exist
+      if (formData.background_color && formData.background_color.trim() !== "") {
+        updateData.background_color = formData.background_color;
+      }
+      
       const { error: updateError } = await supabase
         .from("posts")
-        .update({
-          title: formData.title,
-          slug: formData.slug,
-          category: formData.category,
-          subtitle: formData.subtitle,
-          description: formData.description || formData.subtitle,
-          content: formData.content,
-          cover_image: coverImageUrl,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", postId);
-
+      
+      // If error is about unknown column, try again without background_color
       if (updateError) {
-        setError(updateError.message);
-        setIsSubmitting(false);
-        return;
+        if (updateError.message.includes("column") && updateError.message.includes("background_color")) {
+          console.warn("background_color column not found, retrying without it");
+          delete updateData.background_color;
+          const { error: retryError } = await supabase
+            .from("posts")
+            .update(updateData)
+            .eq("id", postId);
+          
+          if (retryError) {
+            setError(`Error updating post: ${retryError.message}`);
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          setError(updateError.message);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       // Sync image status: activate used images, deactivate unused images
@@ -435,7 +561,7 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
               </div>
 
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Category *
                 </label>
                 <select
@@ -444,7 +570,7 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                   value={formData.category}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100"
                 >
                   {MENU_ITEMS.map((item) => (
                     <option key={item.category} value={item.category}>
@@ -452,6 +578,29 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label htmlFor="author_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Author
+                </label>
+                <select
+                  id="author_id"
+                  name="author_id"
+                  value={formData.author_id}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100"
+                >
+                  <option value="">작성자 선택 (선택사항)</option>
+                  {authors.map((author) => (
+                    <option key={author.id} value={author.id}>
+                      {author.display_name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  게시글 작성자를 선택하세요. 선택하지 않으면 작성자 없음으로 표시됩니다.
+                </p>
               </div>
 
               <div>
@@ -515,6 +664,62 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                 {isUploading && (
                   <p className="mt-2 text-sm text-blue-600">Uploading...</p>
                 )}
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label htmlFor="background_color" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Background Color (상세 페이지 우측 배경)
+                  </label>
+                  {(imagePreview || originalCoverImage) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const imageUrl = imagePreview || originalCoverImage;
+                        if (!imageUrl) return;
+                        try {
+                          const color = await extractDominantColor(imageUrl);
+                          setFormData((prev) => ({ ...prev, background_color: color }));
+                          alert("색상이 자동으로 추출되었습니다!");
+                        } catch (err) {
+                          alert("색상 추출에 실패했습니다.");
+                        }
+                      }}
+                    >
+                      자동 추출
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="background_color"
+                    name="background_color"
+                    type="color"
+                    value={formData.background_color || "#faf9f6"}
+                    onChange={handleInputChange}
+                    className="h-10 w-20 border border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer bg-white dark:bg-gray-800"
+                  />
+                  <input
+                    type="text"
+                    value={formData.background_color || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, background_color: e.target.value }))}
+                    placeholder="#faf9f6"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100 font-mono text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData((prev) => ({ ...prev, background_color: "" }))}
+                  >
+                    초기화
+                  </Button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  상세 페이지 우측 배경색을 설정합니다. 비워두면 기본 색상(#faf9f6)이 사용됩니다. 자동 추출 버튼으로 썸네일 이미지에서 주요 색상을 추출할 수 있습니다.
+                </p>
               </div>
 
               <div>

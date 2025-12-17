@@ -1,4 +1,4 @@
-import { NavLink } from "react-router";
+import { NavLink, useNavigation } from "react-router";
 import { useState } from "react";
 import type { Category } from "../utils/categories";
 
@@ -10,9 +10,13 @@ interface HeaderProps {
 
 export function Header({ isDark, onThemeToggle, categories }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigation = useNavigation();
+  
+  // Check if any link is being navigated to
+  const isNavigating = navigation.state === "loading";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm transition-colors">
+    <header className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 bg-[#faf9f6]/95 dark:bg-gray-950/95 backdrop-blur-sm transition-colors">
       <div className="container mx-auto px-6 py-5">
         <div className="flex items-center justify-between">
           <NavLink
@@ -29,15 +33,20 @@ export function Header({ isDark, onThemeToggle, categories }: HeaderProps) {
               <NavLink
                 key={category.slug}
                 to={`/${category.slug}`}
-                className={({ isActive }) =>
-                  `text-sm font-medium transition-colors ${
+                className={({ isActive, isPending }) =>
+                  `text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? "text-[#111111] dark:text-gray-100 border-b-2 border-[#111111] dark:border-gray-100 pb-1"
+                      : isPending
+                      ? "text-[#8B7355] dark:text-[#A0826D] border-b-2 border-[#8B7355] dark:border-[#A0826D] pb-1 opacity-70"
                       : "text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-gray-100 hover:border-b-2 hover:border-gray-300 dark:hover:border-gray-600 pb-1"
                   }`
                 }
               >
                 {category.label}
+                {navigation.state === "loading" && navigation.location?.pathname === `/${category.slug}` && (
+                  <span className="ml-1 inline-block w-1 h-1 bg-[#8B7355] dark:bg-[#A0826D] rounded-full animate-pulse" />
+                )}
               </NavLink>
             ))}
           </nav>
@@ -78,29 +87,34 @@ export function Header({ isDark, onThemeToggle, categories }: HeaderProps) {
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <nav className="md:hidden mt-4 pb-4 border-t border-gray-200 dark:border-gray-800 pt-4">
-            <div className="flex flex-col gap-4">
-              {categories.map((category) => (
-                <NavLink
-                  key={category.slug}
-                  to={`/${category.slug}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `text-sm font-medium transition-colors py-2 ${
-                      isActive
-                        ? "text-[#111111] dark:text-gray-100"
-                        : "text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-gray-100"
-                    }`
-                  }
-                >
-                  {category.label}
-                </NavLink>
-              ))}
-            </div>
-          </nav>
-        )}
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <nav className="md:hidden mt-4 pb-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+              <div className="flex flex-col gap-4">
+                {categories.map((category) => (
+                  <NavLink
+                    key={category.slug}
+                    to={`/${category.slug}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={({ isActive, isPending }) =>
+                      `text-sm font-medium transition-all duration-200 py-2 flex items-center gap-2 ${
+                        isActive
+                          ? "text-[#111111] dark:text-gray-100"
+                          : isPending
+                          ? "text-[#8B7355] dark:text-[#A0826D] opacity-70"
+                          : "text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-gray-100"
+                      }`
+                    }
+                  >
+                    {category.label}
+                    {navigation.state === "loading" && navigation.location?.pathname === `/${category.slug}` && (
+                      <span className="inline-block w-1.5 h-1.5 bg-[#8B7355] dark:bg-[#A0826D] rounded-full animate-pulse" />
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </nav>
+          )}
       </div>
     </header>
   );
