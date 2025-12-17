@@ -15,15 +15,12 @@ export async function getPageBySlug(slug: string): Promise<Page | null> {
 
   if (error) {
     if (error.code === "PGRST116") {
-      console.log(`Page not found: ${slug}`);
       return null; // Not found
     }
-    console.error(`Error fetching page ${slug}:`, error);
     logError(error, { component: "pages", action: "getPageBySlug", metadata: { slug } });
     return null;
   }
 
-  console.log(`Page found: ${slug}`, data);
   return (data as Page) || null;
 }
 

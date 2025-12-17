@@ -57,26 +57,13 @@ function LayoutContent({ loaderData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const location = useLocation();
   const [isNavigating, setIsNavigating] = useState(false);
-  const [previousPathname, setPreviousPathname] = useState(location.pathname);
-
-  // Detect navigation immediately when navigation.location changes
-  // This happens as soon as a link is clicked, before the loader starts
-  useEffect(() => {
-    if (navigation.location && navigation.location.pathname !== location.pathname) {
-      setIsNavigating(true);
-    }
-  }, [navigation.location, location.pathname]);
-
-  // Detect pathname changes (navigation completed)
-  useEffect(() => {
-    if (location.pathname !== previousPathname) {
-      setPreviousPathname(location.pathname);
-    }
-  }, [location.pathname, previousPathname]);
 
   // Detect navigation state changes
   useEffect(() => {
-    if (navigation.state === "loading" || navigation.state === "submitting") {
+    const isActive = navigation.state === "loading" || navigation.state === "submitting" || 
+                     (navigation.location && navigation.location.pathname !== location.pathname);
+    
+    if (isActive) {
       setIsNavigating(true);
     } else if (navigation.state === "idle" && isNavigating) {
       // When navigation completes, hide loading after a short delay
@@ -86,7 +73,7 @@ function LayoutContent({ loaderData }: Route.ComponentProps) {
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [navigation.state, isNavigating]);
+  }, [navigation.state, navigation.location, location.pathname, isNavigating]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-[#111111] dark:text-gray-100 transition-colors">

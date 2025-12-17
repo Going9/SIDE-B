@@ -11,9 +11,6 @@ interface HeaderProps {
 export function Header({ isDark, onThemeToggle, categories }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigation = useNavigation();
-  
-  // Check if any link is being navigated to
-  const isNavigating = navigation.state === "loading";
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 bg-[#faf9f6]/95 dark:bg-gray-950/95 backdrop-blur-sm transition-colors">

@@ -15,19 +15,15 @@ export async function loader({ params }: Route.LoaderArgs) {
   const slug = params.slug;
 
   if (!slug) {
-    console.error("Page loader: slug is missing");
     throw data(null, { status: 404 });
   }
 
-  console.log(`Page loader: fetching page with slug: ${slug}`);
   const page = await getPageBySlug(slug);
 
   if (!page) {
-    console.error(`Page loader: page not found for slug: ${slug}`);
     throw data(null, { status: 404 });
   }
 
-  console.log(`Page loader: page found:`, page.title);
   return { page };
 }
 

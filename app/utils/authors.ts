@@ -62,8 +62,8 @@ export async function getAuthorsByIds(ids: string[]): Promise<Record<string, Aut
 
   // Convert array to record
   const result: Record<string, Author | null> = {};
-  ids.forEach((id) => {
-    result[id] = (data || []).find((author) => author.id === id) || null;
+  (data || []).forEach((author) => {
+    result[author.id] = author as Author;
   });
 
   return result;

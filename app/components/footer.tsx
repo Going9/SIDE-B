@@ -17,30 +17,10 @@ export function Footer({
   const navigation = useNavigation();
 
   // Get all sections except "카테고리" (which is handled separately)
-  const sections = Object.keys(pagesBySection).filter(
-    (section) => section !== "카테고리"
+  // Filter out empty sections
+  const nonEmptySections = Object.keys(pagesBySection).filter(
+    (section) => section !== "카테고리" && pagesBySection[section]?.length > 0
   );
-
-  // Count non-empty sections
-  const nonEmptySections = sections.filter((section) => {
-    const pages = pagesBySection[section];
-    return pages && pages.length > 0;
-  });
-
-  // Calculate total columns: 1 (SIDE B) + 1 (카테고리 if exists) + non-empty sections
-  const totalColumns =
-    1 + (categories.length > 0 ? 1 : 0) + nonEmptySections.length;
-
-  // Use fixed grid that adapts to content
-  // Always use max 4 columns for better layout
-  const gridColsClass =
-    totalColumns <= 1
-      ? "md:grid-cols-1"
-      : totalColumns <= 2
-        ? "md:grid-cols-2"
-        : totalColumns <= 3
-          ? "md:grid-cols-3"
-          : "md:grid-cols-4";
 
   return (
     <footer className="bg-black text-white py-16 transition-colors">
@@ -85,10 +65,9 @@ export function Footer({
             </div>
           )}
 
-          {/* 동적 섹션들 - 빈 섹션은 표시하지 않음 */}
+          {/* 동적 섹션들 */}
           {nonEmptySections.map((section) => {
             const pages = pagesBySection[section];
-            if (!pages || pages.length === 0) return null;
 
             return (
               <div key={section}>
