@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import { data } from "react-router";
-import { useEffect, useState } from "react";
 import type { Route } from "./+types/article.$slug";
 import { getCategoryBySlug, type Category } from "../utils/categories";
 import { Button } from "../components/ui/button";
@@ -8,6 +7,12 @@ import type { Post } from "../types/db";
 import { getPostBySlug } from "../utils/supabase";
 import { markdownToHtml } from "../utils/markdown";
 import { formatDateKSTFull } from "../utils/date";
+import { handleImageError } from "../utils/image";
+
+interface LoaderData {
+  article: Post;
+  category: Category | null;
+}
 
 export function meta({ params, data }: Route.MetaArgs) {
   const article = data?.article;
@@ -23,7 +28,7 @@ export function meta({ params, data }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params }: Route.LoaderArgs): Promise<LoaderData> {
   const slug = params.slug;
 
   if (!slug) {
@@ -36,22 +41,17 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw data(null, { status: 404 });
   }
 
+  // Load category in parallel
+  const category = await getCategoryBySlug(article.category);
+
   return {
     article,
+    category,
   };
 }
 
 export default function ArticlePage({ loaderData }: Route.ComponentProps) {
-  const { article } = loaderData;
-  const [category, setCategory] = useState<Category | null>(null);
-
-  useEffect(() => {
-    async function loadCategory() {
-      const cat = await getCategoryBySlug(article.category);
-      setCategory(cat);
-    }
-    loadCategory();
-  }, [article.category]);
+  const { article, category } = loaderData;
 
 
   return (
@@ -94,6 +94,9 @@ export default function ArticlePage({ loaderData }: Route.ComponentProps) {
               src={article.cover_image}
               alt={article.title}
               className="w-full h-auto rounded-none object-cover aspect-[16/9]"
+              loading="eager"
+              decoding="async"
+              onError={handleImageError}
             />
           </div>
         </div>

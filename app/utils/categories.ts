@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { logError } from "./error-handler";
 
 export interface Category {
   id: string;
@@ -20,7 +21,7 @@ export async function getActiveCategories(): Promise<Category[]> {
     .order("display_order", { ascending: true });
 
   if (error) {
-    console.error("Failed to fetch categories:", error);
+    logError(error, { component: "categories", action: "getActiveCategories" });
     // Fallback to default categories if DB query fails
     return getDefaultCategories();
   }
@@ -90,10 +91,44 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
 }
 
 /**
+ * Get multiple categories by slugs (batch query for better performance)
+ */
+export async function getCategoriesBySlugs(
+  slugs: string[]
+): Promise<Record<string, Category | null>> {
+  if (slugs.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .in("slug", slugs)
+    .eq("is_active", true);
+
+  if (error) {
+    logError(error, { component: "categories", action: "getCategoriesBySlugs" });
+    // Fallback: try individual queries
+    const result: Record<string, Category | null> = {};
+    await Promise.all(
+      slugs.map(async (slug) => {
+        result[slug] = await getCategoryBySlug(slug);
+      })
+    );
+    return result;
+  }
+
+  // Convert array to record
+  const result: Record<string, Category | null> = {};
+  slugs.forEach((slug) => {
+    result[slug] = (data || []).find((cat) => cat.slug === slug) || null;
+  });
+
+  return result;
+}
+
+/**
  * Check if category slug is valid
  */
 export async function isValidCategory(slug: string): Promise<boolean> {
   const category = await getCategoryBySlug(slug);
   return category !== null;
 }
-

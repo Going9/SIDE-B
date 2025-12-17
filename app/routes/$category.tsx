@@ -12,6 +12,7 @@ import type { Post } from "../types/db";
 import { getPostsByCategory } from "../utils/supabase";
 import { getCategoryBySlug, isValidCategory } from "../utils/categories";
 import { formatDateKSTFull } from "../utils/date";
+import { handleImageError } from "../utils/image";
 
 interface LoaderData {
   category: {
@@ -114,6 +115,9 @@ export default function CategoryPage({ loaderData }: Route.ComponentProps) {
                           src={post.cover_image}
                           alt={post.title}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          onError={handleImageError}
                         />
                       </div>
                     ) : (

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Post } from "../types/db";
+import { logError } from "./error-handler";
 
 // 1. 환경 변수에서 키 가져오기
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -29,7 +30,7 @@ export async function getLatestPosts(
     .range(offset, offset + limit - 1);
 
   if (error) {
-    console.error("Supabase Error:", error);
+    logError(error, { component: "supabase", action: "getLatestPosts" });
     throw new Error(`Failed to fetch posts: ${error.message}`);
   }
 
@@ -45,7 +46,7 @@ export async function getTotalPostsCount(): Promise<number> {
     .select("*", { count: "exact", head: true });
 
   if (error) {
-    console.error("Supabase Error:", error);
+    logError(error, { component: "supabase", action: "getTotalPostsCount" });
     throw new Error(`Failed to fetch posts count: ${error.message}`);
   }
 
@@ -62,7 +63,11 @@ export async function getPostsByCategory(
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Supabase Error:", error);
+    logError(error, {
+      component: "supabase",
+      action: "getPostsByCategory",
+      metadata: { category },
+    });
     throw new Error(`Failed to fetch posts by category: ${error.message}`);
   }
 
@@ -78,7 +83,11 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
 
   if (error) {
     if (error.code === "PGRST116") return null;
-    console.error("Supabase Error:", error);
+    logError(error, {
+      component: "supabase",
+      action: "getPostBySlug",
+      metadata: { slug },
+    });
     throw new Error(`Failed to fetch post: ${error.message}`);
   }
 
