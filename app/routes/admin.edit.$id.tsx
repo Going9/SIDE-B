@@ -509,28 +509,28 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
 
   if (isCheckingAuth || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8 px-4 transition-colors">
       <div className="container mx-auto max-w-4xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#111111]">Edit Post</h1>
-          <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
-            Back to Dashboard
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111111] dark:text-gray-100">Edit Post</h1>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/dashboard")} className="w-full sm:w-auto">
+            대시보드로
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Post Details</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Post Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
                   {error}
@@ -681,7 +681,7 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
                   <label htmlFor="background_color" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Background Color (상세 페이지 우측 배경)
                   </label>
@@ -701,32 +701,34 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                           alert("색상 추출에 실패했습니다.");
                         }
                       }}
+                      className="w-full sm:w-auto"
                     >
                       자동 추출
                     </Button>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <input
                     id="background_color"
                     name="background_color"
                     type="color"
                     value={formData.background_color || "#faf9f6"}
                     onChange={handleInputChange}
-                    className="h-10 w-20 border border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer bg-white dark:bg-gray-800"
+                    className="h-10 w-full sm:w-20 border border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer bg-white dark:bg-gray-800"
                   />
                   <input
                     type="text"
                     value={formData.background_color || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, background_color: e.target.value }))}
                     placeholder="#faf9f6"
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100 font-mono text-sm"
+                    className="flex-1 w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100 font-mono text-sm"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setFormData((prev) => ({ ...prev, background_color: "" }))}
+                    className="w-full sm:w-auto"
                   >
                     초기화
                   </Button>
@@ -737,8 +739,8 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
+                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Content * (Markdown 지원)
                   </label>
                   <Button
@@ -746,6 +748,7 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowPreview(!showPreview)}
+                    className="w-full sm:w-auto"
                   >
                     {showPreview ? "편집" : "미리보기"}
                   </Button>
@@ -765,8 +768,8 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                     value={formData.content}
                     onChange={handleInputChange}
                     required
-                    rows={15}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none resize-y font-mono text-sm"
+                    rows={12}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none resize-y font-mono text-sm bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100"
                     placeholder="마크다운 형식으로 작성하세요. 예: ![이미지 설명](이미지URL)"
                   />
                 )}
@@ -868,16 +871,17 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
                 </div>
               </div>
 
-              <div className="flex gap-4 justify-end">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/admin/dashboard")}
                   disabled={isSubmitting}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting || isUploading || isUploadingContentImages}>
+                <Button type="submit" disabled={isSubmitting || isUploading || isUploadingContentImages} className="w-full sm:w-auto">
                   {isUploadingContentImages ? "Uploading..." : isUploading ? "Uploading..." : isSubmitting ? "Updating..." : "Update Post"}
                 </Button>
               </div>

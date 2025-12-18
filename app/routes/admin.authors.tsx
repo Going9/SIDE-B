@@ -248,12 +248,12 @@ function AdminAuthorsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8 px-4 transition-colors">
       <div className="container mx-auto max-w-6xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#111111] dark:text-gray-100">작성자 관리</h1>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111111] dark:text-gray-100">작성자 관리</h1>
           <div className="flex gap-4">
-            <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/dashboard")} className="w-full sm:w-auto">
               대시보드로
             </Button>
           </div>
@@ -263,7 +263,7 @@ function AdminAuthorsContent() {
           {/* Authors List */}
           <Card>
             <CardHeader>
-              <CardTitle>작성자 목록</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">작성자 목록</CardTitle>
             </CardHeader>
             <CardContent>
               {authors.length === 0 ? (
@@ -277,13 +277,14 @@ function AdminAuthorsContent() {
                       key={author.id}
                       className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3"
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <AuthorProfile author={author} date={author.created_at} size="sm" />
                         <div className="flex-1"></div>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => startEdit(author)}
+                          className="w-full sm:w-auto"
                         >
                           수정
                         </Button>
@@ -303,7 +304,7 @@ function AdminAuthorsContent() {
           {/* Author Form */}
           <Card>
             <CardHeader>
-              <CardTitle>
+              <CardTitle className="text-lg sm:text-xl">
                 {editingId ? "작성자 정보 수정" : "새 작성자 프로필 생성"}
               </CardTitle>
             </CardHeader>
@@ -389,13 +390,13 @@ function AdminAuthorsContent() {
                   )}
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   {editingId && (
-                    <Button type="button" variant="outline" onClick={cancelEdit}>
+                    <Button type="button" variant="outline" onClick={cancelEdit} className="w-full sm:w-auto">
                       취소
                     </Button>
                   )}
-                  <Button type="submit" disabled={isSubmitting || isUploading}>
+                  <Button type="submit" disabled={isSubmitting || isUploading} className="w-full sm:w-auto">
                     {isSubmitting || isUploading
                       ? "저장 중..."
                       : editingId

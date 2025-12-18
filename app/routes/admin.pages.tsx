@@ -215,28 +215,30 @@ function AdminPagesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8 px-4 transition-colors">
       <div className="container mx-auto max-w-4xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#111111] dark:text-gray-100">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111111] dark:text-gray-100">
             페이지 관리
           </h1>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => navigate("/admin/dashboard")}
+            className="w-full sm:w-auto"
           >
-            Back to Dashboard
+            대시보드로
           </Button>
         </div>
 
-        <Card className="mb-8">
+        <Card className="mb-6 sm:mb-8">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-lg sm:text-xl">
               {editingId ? "페이지 수정" : "새 페이지 추가"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded text-sm">
                   {error}
@@ -388,7 +390,7 @@ function AdminPagesContent() {
                   value={formData.content}
                   onChange={handleInputChange}
                   required
-                  rows={15}
+                  rows={12}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none bg-white dark:bg-gray-800 text-[#111111] dark:text-gray-100 font-mono text-sm"
                   placeholder="Markdown 형식으로 작성하세요"
                 />
@@ -411,13 +413,13 @@ function AdminPagesContent() {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 {editingId && (
-                  <Button type="button" variant="outline" onClick={handleCancel}>
+                  <Button type="button" variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
                     Cancel
                   </Button>
                 )}
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                   {isSubmitting ? "저장 중..." : editingId ? "수정" : "추가"}
                 </Button>
               </div>
@@ -427,7 +429,7 @@ function AdminPagesContent() {
 
         <Card>
           <CardHeader>
-            <CardTitle>페이지 목록</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">페이지 목록</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -439,11 +441,11 @@ function AdminPagesContent() {
                 pages.map((page) => (
                   <div
                     key={page.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-[#111111] dark:text-gray-100">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <h3 className="font-semibold text-[#111111] dark:text-gray-100 text-base">
                           {page.title}
                         </h3>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -462,7 +464,7 @@ function AdminPagesContent() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                         {page.content.substring(0, 100)}...
                       </p>
                     </div>
@@ -470,6 +472,7 @@ function AdminPagesContent() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(page)}
+                      className="w-full sm:w-auto"
                     >
                       수정
                     </Button>

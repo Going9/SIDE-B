@@ -103,26 +103,28 @@ function AdminSettingsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8 px-4 transition-colors">
       <div className="container mx-auto max-w-4xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#111111] dark:text-gray-100">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111111] dark:text-gray-100">
             사이트 설정
           </h1>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => navigate("/admin/dashboard")}
+            className="w-full sm:w-auto"
           >
-            Back to Dashboard
+            대시보드로
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>사이트 설정</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">사이트 설정</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded text-sm">
                   {error}
@@ -163,15 +165,16 @@ function AdminSettingsContent() {
                 </div>
               ))}
 
-              <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/admin/dashboard")}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                   {isSubmitting ? "저장 중..." : "저장"}
                 </Button>
               </div>

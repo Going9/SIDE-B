@@ -209,12 +209,12 @@ function AdminCategoriesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8 px-4 transition-colors">
       <div className="container mx-auto max-w-6xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#111111] dark:text-gray-100">카테고리 관리</h1>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111111] dark:text-gray-100">카테고리 관리</h1>
           <div className="flex gap-4">
-            <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/dashboard")} className="w-full sm:w-auto">
               대시보드로
             </Button>
           </div>
@@ -224,43 +224,44 @@ function AdminCategoriesContent() {
           {/* Category List */}
           <Card>
             <CardHeader>
-              <CardTitle>카테고리 목록</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">카테고리 목록</CardTitle>
             </CardHeader>
             <CardContent>
               {categories.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">카테고리가 없습니다.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">카테고리가 없습니다.</p>
               ) : (
                 <div className="space-y-4">
                   {categories.map((category) => (
                     <div
                       key={category.id}
-                      className="border border-gray-200 rounded-lg p-4 space-y-2"
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-lg">{category.label}</h3>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <h3 className="font-semibold text-base sm:text-lg text-[#111111] dark:text-gray-100">{category.label}</h3>
                             <span
                               className={`text-xs px-2 py-1 rounded ${
                                 category.is_active
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-600"
+                                  ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                               }`}
                             >
                               {category.is_active ? "활성" : "비활성"}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mt-1">{category.slug}</p>
-                          <p className="text-sm text-gray-500 mt-1">{category.description}</p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{category.slug}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{category.description}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                             순서: {category.display_order}
                           </p>
                         </div>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-row sm:flex-col gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => startEdit(category)}
+                            className="flex-1 sm:flex-none text-xs"
                           >
                             수정
                           </Button>
@@ -268,11 +269,11 @@ function AdminCategoriesContent() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleToggleActive(category.id, category.is_active)}
-                            className={
+                            className={`flex-1 sm:flex-none text-xs ${
                               category.is_active
-                                ? "text-orange-600 hover:text-orange-700"
-                                : "text-green-600 hover:text-green-700"
-                            }
+                                ? "text-orange-600 hover:text-orange-700 dark:text-orange-400"
+                                : "text-green-600 hover:text-green-700 dark:text-green-400"
+                            }`}
                           >
                             {category.is_active ? "비활성화" : "활성화"}
                           </Button>
@@ -280,7 +281,7 @@ function AdminCategoriesContent() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleDelete(category.id)}
-                            className="text-red-600 hover:text-red-700"
+                            className="flex-1 sm:flex-none text-xs text-red-600 hover:text-red-700 dark:text-red-400"
                           >
                             삭제
                           </Button>
@@ -296,7 +297,7 @@ function AdminCategoriesContent() {
           {/* Category Form */}
           <Card>
             <CardHeader>
-              <CardTitle>{editingId ? "카테고리 수정" : "새 카테고리 추가"}</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">{editingId ? "카테고리 수정" : "새 카테고리 추가"}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -381,13 +382,13 @@ function AdminCategoriesContent() {
                   <p className="mt-1 text-xs text-gray-500">숫자가 작을수록 앞에 표시됩니다</p>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   {editingId && (
-                    <Button type="button" variant="outline" onClick={cancelEdit}>
+                    <Button type="button" variant="outline" onClick={cancelEdit} className="w-full sm:w-auto">
                       취소
                     </Button>
                   )}
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                     {isSubmitting ? "저장 중..." : editingId ? "수정하기" : "카테고리 추가"}
                   </Button>
                 </div>

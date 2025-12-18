@@ -1,13 +1,15 @@
 import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "outline" | "ghost" | "link";
   size?: "default" | "sm" | "lg";
+  asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className = "", variant = "default", size = "default", ...props },
+    { className = "", variant = "default", size = "default", asChild = false, ...props },
     ref
   ) => {
     const baseStyles =
@@ -28,9 +30,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       lg: "h-12 px-8 text-base",
     };
 
+    const Comp = asChild ? Slot : "button";
+    const combinedClassName = `${baseStyles} ${variants[variant]} ${variant !== "link" ? sizes[size] : ""} ${className}`;
+
     return (
-      <button
-        className={`${baseStyles} ${variants[variant]} ${variant !== "link" ? sizes[size] : ""} ${className}`}
+      <Comp
+        className={combinedClassName}
         ref={ref}
         {...props}
       />

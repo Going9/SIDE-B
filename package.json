@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
     "@react-router/node": "7.10.1",
     "@react-router/serve": "7.10.1",
     "@supabase/supabase-js": "^2.88.0",
