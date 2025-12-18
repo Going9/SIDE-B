@@ -165,38 +165,38 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
         )}
 
         {/* Content - Smaller proportion */}
-        <div className="px-3 py-3 flex-1 flex flex-col">
-          <div className="flex items-end justify-between gap-3">
-            {/* Left: Text Content */}
-            <div className="flex-1 flex flex-col min-w-0">
-              {/* Title */}
-              <h2 className="font-semibold text-[#1a1a1a] dark:text-[#f5f5f5] leading-tight tracking-tight mb-2 group-hover:opacity-70 transition-opacity text-base md:text-lg">
-                {post.title}
-              </h2>
+        <div className="px-3 py-3 flex-1 flex flex-col justify-between min-h-0">
+          {/* Text Content */}
+          <div className="flex flex-col min-w-0">
+            {/* Title */}
+            <h2 className="font-semibold text-[#1a1a1a] dark:text-[#f5f5f5] leading-tight tracking-tight mb-2 group-hover:opacity-70 transition-opacity text-base md:text-lg">
+              {post.title}
+            </h2>
 
-              {/* Description */}
-              {post.description && (
-                <p className="text-[#666] dark:text-[#999] leading-relaxed overflow-hidden text-xs md:text-sm line-clamp-2 mb-2">
-                  {post.description}
-                </p>
-              )}
+            {/* Description */}
+            {post.description && (
+              <p className="text-[#666] dark:text-[#999] leading-relaxed overflow-hidden text-xs md:text-sm line-clamp-2 mb-2">
+                {post.description}
+              </p>
+            )}
 
-              {/* Date */}
-              <time
-                dateTime={post.created_at}
-                className="text-xs text-[#999] dark:text-[#666] mt-auto"
-              >
-                {formatDateKST(post.created_at)}
-              </time>
-            </div>
+            {/* Date */}
+            <time
+              dateTime={post.created_at}
+              className="text-xs text-[#999] dark:text-[#666]"
+            >
+              {formatDateKST(post.created_at)}
+            </time>
+          </div>
 
-            {/* Right: Author Profile */}
-            {post.author && (
+          {/* Bottom: Author Profile - always at bottom */}
+          {post.author && (
+            <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-gray-200/50 dark:border-gray-800/50 flex-shrink-0">
               <div
                 onClick={handleAuthorClick}
-                className="flex flex-col items-center gap-1.5 flex-shrink-0 hover:opacity-70 transition-opacity cursor-pointer"
+                className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 ring-1 ring-gray-300 dark:ring-gray-600">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 ring-1 ring-gray-300 dark:ring-gray-600">
                   {post.author.profile_image_url ? (
                     <img
                       src={post.author.profile_image_url}
@@ -212,12 +212,12 @@ function PostCard({ post, category, isLarge = false }: PostCardProps) {
                     </div>
                   )}
                 </div>
-                <span className="text-xs text-[#666] dark:text-[#999] font-medium text-center max-w-[60px] truncate">
+                <span className="text-xs text-[#666] dark:text-[#999] font-medium">
                   {post.author.display_name}
                 </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </article>
     </Link>
