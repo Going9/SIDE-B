@@ -376,33 +376,119 @@ export default function AdminEdit({ params }: Route.ComponentProps) {
     } = await supabase.auth.getSession();
     if (!session) return;
 
-    const { data: userImages, error: fetchError } = await supabase
+    // Get all images (not just user's) that are temp or active or deleted
+    // We need to check all images to find matches, not just user's images
+    const { data: allImages, error: fetchError } = await supabase
+      .from("images")
+      .select("id, public_url, status, user_id")
+      .in("status", ["temp", "active", "deleted"]);
+
+    if (fetchError) {
+      console.error("Failed to fetch images:", fetchError);
+      return;
+    }
+
+    // Extract storage path from URL
+    function extractStoragePathFromUrl(url: string): string | null {
+      try {
+        const urlObj = new URL(url);
+        const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/images\/(.+)/);
+        return pathMatch ? pathMatch[1] : null;
+      } catch {
+        return null;
+      }
+    }
+
+    // Check if image exists in storage
+    async function checkStorageFileExists(storagePath: string): Promise<boolean> {
+      try {
+        const { data, error } = await supabase.storage
+          .from("images")
+          .download(storagePath);
+        return !error && data !== null;
+      } catch {
+        return false;
+      }
+    }
+
+    // Separate images into used and unused
+    const usedImageIds: string[] = [];
+    const unusedImageIds: string[] = [];
+    const imagesToRegister: Array<{ url: string; storagePath: string }> = [];
+
+    // Find images that are already in the table
+    const existingImageUrls = new Set(allImages?.map((img) => img.public_url) || []);
+    
+    // Check each image URL in content
+    for (const imageUrl of imageUrls) {
+      const existingImage = allImages?.find((img) => img.public_url === imageUrl);
+      
+      if (existingImage) {
+        // Image exists in table
+        if (existingImage.status === "temp") {
+          usedImageIds.push(existingImage.id);
+        } else if (existingImage.status === "deleted") {
+          // If deleted but used in content, reactivate it
+          const storagePath = extractStoragePathFromUrl(imageUrl);
+          if (storagePath) {
+            const exists = await checkStorageFileExists(storagePath);
+            if (exists) {
+              // Reactivate deleted image
+              const { error: reactivateError } = await supabase
+                .from("images")
+                .update({ status: "active" })
+                .eq("id", existingImage.id);
+              
+              if (reactivateError) {
+                console.error(`Failed to reactivate image ${existingImage.id}:`, reactivateError);
+              }
+            }
+          }
+        }
+      } else {
+        // Image not in table - check if it's a Supabase Storage URL and register it
+        const storagePath = extractStoragePathFromUrl(imageUrl);
+        if (storagePath && imageUrl.includes("supabase.co")) {
+          // Check if file exists in storage
+          const exists = await checkStorageFileExists(storagePath);
+          if (exists) {
+            imagesToRegister.push({ url: imageUrl, storagePath });
+          }
+        }
+      }
+    }
+
+    // Register new images that are used in content but not in table
+    for (const { url, storagePath } of imagesToRegister) {
+      const { error: insertError } = await supabase
+        .from("images")
+        .insert({
+          user_id: session.user.id,
+          storage_path: storagePath,
+          public_url: url,
+          status: "active", // Used in content, so mark as active
+        });
+
+      if (insertError) {
+        console.error(`Failed to register image ${url}:`, insertError);
+      }
+    }
+
+    // Get user's images again after potential inserts
+    const { data: userImages } = await supabase
       .from("images")
       .select("id, public_url, status")
       .eq("user_id", session.user.id)
       .in("status", ["temp", "active"]);
 
-    if (fetchError) {
-      console.error("Failed to fetch user images:", fetchError);
-      return;
-    }
-
     if (!userImages || userImages.length === 0) {
       return;
     }
 
-    const usedImageIds: string[] = [];
-    const unusedImageIds: string[] = [];
-
+    // Find unused images (active images not in content)
     userImages.forEach((img) => {
-      if (imageUrls.includes(img.public_url)) {
-        if (img.status === "temp") {
-          usedImageIds.push(img.id);
-        }
-      } else {
-        if (img.status === "active") {
-          unusedImageIds.push(img.id);
-        }
+      if (!imageUrls.includes(img.public_url) && img.status === "active") {
+        unusedImageIds.push(img.id);
       }
     });
 
